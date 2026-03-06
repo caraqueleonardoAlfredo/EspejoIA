@@ -1,0 +1,47 @@
+/* Fondo negro tipo espejo */
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Pantalla centrada */
+.screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Hora grande */
+.hora {
+  font-size: 96px;
+  letter-spacing: 2px;
+}
+
+/* Estado más chico */
+.estado {
+  margin-top: 16px;
+  font-size: 22px;
+  opacity: 0.75;
+}
+
+.frase {
+  margin-top: 18px;
+  font-size: 28px;
+  opacity: 0.85;
+  max-width: 80vw;
+  text-align: center;
+}
+
+.modo {
+  margin-top: 10px;
+  font-size: 18px;
+  opacity: 0.7;
+}
+
+.panel {
+  margin-top: 14px;
+}

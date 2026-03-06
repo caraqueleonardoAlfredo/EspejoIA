@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Espejo IA</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+ <div class="screen">
+  <div class="hora" id="hora">--:--:--</div>
+  <div class="estado" id="estado">CARGANDO...</div>
+  <div class="modo" id="modo">MODO: ...</div>
+
+  <!-- Paneles por modo -->
+  <div class="panel panel-info" id="panelInfo">
+    <div class="frase" id="frase">Decime algo...</div>
+  </div>
+
+  <div class="panel panel-domotica" id="panelDomotica" style="display:none;">
+    <div class="frase">Panel Domótica</div>
+    <div class="frase" id="domoticaMsg">Decí: "encendé la luz"</div>
+  </div>
+
+  <div class="panel panel-ai" id="panelAI" style="display:none;">
+    <div class="frase">Dianuby AI</div>
+    <div class="frase" id="aiMsg">Preguntame algo...</div>
+  </div>
+</div>
+
+
+<script>
+  async function actualizar() {
+    try {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+
+      document.getElementById("modo").textContent = "MODO: " + (data.modo || "INFO");
+
+      // Mostrar/ocultar paneles según modo
+      document.getElementById("panelInfo").style.display = (data.modo === "INFO") ? "block" : "none";
+      document.getElementById("panelDomotica").style.display = (data.modo === "DOMOTICA") ? "block" : "none";
+      document.getElementById("panelAI").style.display = (data.modo === "AI") ? "block" : "none";
+
+
+      document.getElementById("hora").textContent = data.hora;
+      document.getElementById("estado").textContent = data.estado;
+      document.getElementById("frase").textContent = data.frase || "Decime algo...";
+    } catch (e) {
+      document.getElementById("estado").textContent = "ERROR CONEXIÓN";
+    }
+  }
+
+  actualizar();
+  setInterval(actualizar, 1000);
+
+  </script>
+</body>
+</html>
