@@ -1,81 +1,172 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Espejo IA</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
-
 <body>
-  <div class="screen">
-    <div class="hora" id="hora">--:--:--</div>
-    <div class="estado" id="estado">CARGANDO...</div>
-    <div class="modo" id="modo">MODO: ...</div>
+  <div class="screen" id="screen">
+    <div class="topbar">
+      <div class="estado" id="estado">CARGANDO...</div>
+      <div class="modo" id="modo">MODO: ...</div>
+    </div>
 
     <div class="panel panel-info" id="panelInfo">
-      <div class="frase" id="frase">Decime algo...</div>
+      <div class="hora" id="hora">--:--</div>
+      <div class="fecha" id="fecha">--</div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="label">Clima</div>
+          <div class="value" id="clima">--</div>
+        </div>
+
+        <div class="info-card">
+          <div class="label">Temperatura</div>
+          <div class="value" id="temperatura">--</div>
+        </div>
+
+        <div class="info-card">
+          <div class="label">Humedad</div>
+          <div class="value" id="humedad">--</div>
+        </div>
+
+        <div class="info-card">
+          <div class="label">Dolar</div>
+          <div class="value" id="dolar">--</div>
+        </div>
+      </div>
+
+      <div class="frase" id="frase">Desliza la mano para cambiar de modo</div>
     </div>
 
     <div class="panel panel-domotica" id="panelDomotica" style="display:none;">
       <iframe
         id="haFrame"
+        title="Home Assistant"
         src=""
-        style="width:100%; height:80vh; border:none; border-radius:12px;"
-      ></iframe>
+        allow="fullscreen">
+      </iframe>
     </div>
 
-    <div class="panel panel-ai" id="panelAI" style="display:none;">
-      <div class="frase">Dianuby AI</div>
-      <div class="frase" id="aiMsg">Preguntame algo...</div>
+    <div class="panel panel-ia" id="panelIA" style="display:none;">
+      <div class="ia-title">Dianuby IA</div>
+      <div class="ia-subtitle">Preguntame algo...</div>
     </div>
   </div>
-
   <script>
-  let ultimoModo = null;
-  let haCargado = false;
+    const horaEl = document.getElementById("hora");
+    const fechaEl = document.getElementById("fecha");
+    const estadoEl = document.getElementById("estado");
+    const modoEl = document.getElementById("modo");
+    const fraseEl = document.getElementById("frase");
 
-  async function actualizar() {
-    try {
-      const res = await fetch("/api/status");
-      const data = await res.json();
+    const climaEl = document.getElementById("clima");
+    const temperaturaEl = document.getElementById("temperatura");
+    const humedadEl = document.getElementById("humedad");
+    const dolarEl = document.getElementById("dolar");
 
-      document.getElementById("hora").textContent = data.hora;
-      document.getElementById("estado").textContent = data.estado;
-      document.getElementById("modo").textContent = "MODO: " + (data.modo || "INFO");
+    const panelInfo = document.getElementById("panelInfo");
+    const panelDomotica = document.getElementById("panelDomotica");
+    const panelIA = document.getElementById("panelIA");
+    const haFrame = document.getElementById("haFrame");
+    const screen = document.getElementById("screen");
 
-      const panelInfo = document.getElementById("panelInfo");
-      const panelDomotica = document.getElementById("panelDomotica");
-      const panelAI = document.getElementById("panelAI");
-      const haFrame = document.getElementById("haFrame");
+    let ultimoModo = null;
+    let haCargado = false;
 
-      panelInfo.style.display = data.modo === "INFO" ? "block" : "none";
-      panelDomotica.style.display = data.modo === "DOMOTICA" ? "block" : "none";
-      panelAI.style.display = data.modo === "AI" ? "block" : "none";
+    function actualizarHoraLocal() {
+      const ahora = new Date();
 
-      document.getElementById("frase").textContent = data.frase || "Decime algo...";
+      horaEl.textContent = ahora.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
 
-      // Cargar Home Assistant SOLO una vez al entrar a DOMOTICA
-      if (data.modo === "DOMOTICA" && ultimoModo !== "DOMOTICA") {
-        haFrame.src = data.ha_url;
-        haCargado = true;
-      }
-
-      // Cuando sal�s de DOMOTICA, limpiar
-      if (data.modo !== "DOMOTICA" && ultimoModo === "DOMOTICA") {
-        haFrame.src = "";
-        haCargado = false;
-      }
-
-      ultimoModo = data.modo;
-
-    } catch (e) {
-      document.getElementById("estado").textContent = "ERROR DE CONEXION";
+      fechaEl.textContent = ahora.toLocaleDateString("es-AR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long"
+      });
     }
-  }
 
-  actualizar();
-  setInterval(actualizar, 1000);
-</script>
+    async function actualizarStatus() {
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+
+        estadoEl.textContent = data.estado || "FUNCIONANDO";
+        modoEl.textContent = `MODO: ${data.modo || "INFO"}`;
+
+        if (data.modo === "INFO") {
+          panelInfo.style.display = "flex";
+          panelDomotica.style.display = "none";
+          panelIA.style.display = "none";
+          fraseEl.textContent = data.frase || "Desliza la mano para cambiar de modo";
+        } else if (data.modo === "DOMOTICA") {
+          panelInfo.style.display = "none";
+          panelDomotica.style.display = "block";
+          panelIA.style.display = "none";
+
+          if (!haCargado || ultimoModo !== "DOMOTICA") {
+            haFrame.src = data.ha_url || "";
+            haCargado = true;
+          }
+        } else if (data.modo === "IA") {
+          panelInfo.style.display = "none";
+          panelDomotica.style.display = "none";
+          panelIA.style.display = "flex";
+        }
+
+        if (ultimoModo === "DOMOTICA" && data.modo !== "DOMOTICA") {
+          haFrame.src = "";
+          haCargado = false;
+        }
+
+        if (data.screen_on === false) {
+          screen.classList.add("screen-off");
+        } else {
+          screen.classList.remove("screen-off");
+        }
+
+        ultimoModo = data.modo;
+      } catch (error) {
+        console.error("Error al actualizar status:", error);
+        estadoEl.textContent = "ERROR DE CONEXION";
+      }
+    }
+
+    async function actualizarInfo() {
+      try {
+        const res = await fetch("/api/info");
+        const data = await res.json();
+
+        climaEl.textContent = data.clima || "--";
+        temperaturaEl.textContent = data.temperatura || "--";
+        humedadEl.textContent = data.humedad || "--";
+        dolarEl.textContent = data.dolar || "--";
+
+        if (ultimoModo === "INFO") {
+          fraseEl.textContent = data.mensaje_info || "Desliza la mano para cambiar de modo";
+        }
+      } catch (error) {
+        console.error("Error al actualizar info:", error);
+        climaEl.textContent = "--";
+        temperaturaEl.textContent = "--";
+        humedadEl.textContent = "--";
+        dolarEl.textContent = "--";
+      }
+    }
+
+    actualizarHoraLocal();
+    actualizarStatus();
+    actualizarInfo();
+
+    setInterval(actualizarHoraLocal, 1000);
+    setInterval(actualizarStatus, 3000);
+    setInterval(actualizarInfo, 300000);
+  </script>
 </body>
 </html>
