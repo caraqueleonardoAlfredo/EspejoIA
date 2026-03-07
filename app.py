@@ -1,5 +1,6 @@
 from flask import Flask, render_template, jsonify, request
-from state import STATE, VALID_MODES
+from state import STATE
+from mirror_controller import CONTROLLER
 from info_service import get_info_data
 
 app = Flask(__name__)
@@ -12,8 +13,12 @@ def home():
     return render_template("index.html")
 
 
+# -----------------------------
+# STATUS
+# -----------------------------
 @app.route("/api/status")
 def api_status():
+
     return jsonify({
         "estado": STATE.status_text,
         "frase": STATE.last_phrase,
@@ -25,68 +30,55 @@ def api_status():
     })
 
 
+# -----------------------------
+# INFO
+# -----------------------------
 @app.route("/api/info")
 def api_info():
     return jsonify(get_info_data())
 
 
-@app.route("/api/set_frase", methods=["POST"])
-def set_frase():
-    data = request.get_json(force=True)
-
-    if "frase" in data:
-        STATE.last_phrase = str(data["frase"])
-
-    if "estado" in data:
-        STATE.status_text = str(data["estado"])
-
-    return jsonify({"ok": True})
-
-
-@app.route("/api/set_modo", methods=["POST"])
-def set_modo():
-    data = request.get_json(force=True)
-    nuevo_modo = str(data.get("modo", "")).upper()
-
-    if nuevo_modo not in VALID_MODES:
-        return jsonify({"ok": False, "error": "Modo invalido"}), 400
-
-    STATE.set_mode(nuevo_modo)
-
-    return jsonify({
-        "ok": True,
-        "modo": STATE.mode,
-        "mostrar_ha": STATE.mode == "DOMOTICA"
-    })
-
-
+# -----------------------------
+# CAMBIO DE MODO
+# -----------------------------
 @app.route("/api/next_modo", methods=["POST"])
 def next_modo():
-    modos = ["INFO", "DOMOTICA", "IA"]
-    idx = modos.index(STATE.mode)
-    siguiente = modos[(idx + 1) % len(modos)]
-    STATE.set_mode(siguiente)
+
+    modo = CONTROLLER.next_mode()
 
     return jsonify({
         "ok": True,
-        "modo": STATE.mode,
-        "mostrar_ha": STATE.mode == "DOMOTICA"
+        "modo": modo
     })
 
 
+# -----------------------------
+# SET MODO
+# -----------------------------
+@app.route("/api/set_modo", methods=["POST"])
+def set_modo():
+
+    data = request.get_json(force=True)
+
+    modo = CONTROLLER.set_mode(data.get("modo", "INFO"))
+
+    return jsonify({
+        "ok": True,
+        "modo": modo
+    })
+
+
+# -----------------------------
+# PRESENCIA
+# -----------------------------
 @app.route("/api/set_presence", methods=["POST"])
 def set_presence():
+
     data = request.get_json(force=True)
-    presence = bool(data.get("presence_detected", False))
 
-    STATE.presence_detected = presence
-    STATE.screen_on = presence
+    detected = bool(data.get("presence_detected", False))
 
-    if presence:
-        STATE.set_mode("INFO")
-        STATE.status_text = "FUNCIONANDO"
-        if not STATE.last_phrase:
-            STATE.last_phrase = "Desliza la mano para cambiar de modo"
+    CONTROLLER.set_presence(detected)
 
     return jsonify({
         "ok": True,
@@ -96,14 +88,16 @@ def set_presence():
     })
 
 
+# -----------------------------
+# APAGAR PANTALLA
+# -----------------------------
 @app.route("/api/screen_off", methods=["POST"])
 def screen_off():
-    STATE.screen_on = False
-    STATE.presence_detected = False
+
+    CONTROLLER.set_presence(False)
 
     return jsonify({
-        "ok": True,
-        "screen_on": STATE.screen_on
+        "ok": True
     })
 
 
