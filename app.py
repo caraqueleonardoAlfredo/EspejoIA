@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request
 from state import STATE
 from mirror_controller import CONTROLLER
 from info_service import get_info_data
+from gpio_controller import start_gpio
 
 app = Flask(__name__)
 
@@ -102,4 +103,5 @@ def screen_off():
 
 
 if __name__ == "__main__":
+    start_gpio()
     app.run(host="0.0.0.0", port=5000, debug=False)
