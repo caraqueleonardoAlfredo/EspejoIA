@@ -7,10 +7,10 @@ VALID_MODES = {"INFO", "DOMOTICA", "IA"}
 @dataclass
 class MirrorState:
     mode: str = "INFO"
-    status_text: str = "FUNCIONANDO"
+    status_text: str = "ESPERANDO PRESENCIA"
     last_phrase: str = "Desliza la mano para cambiar de modo"
-    presence_detected: bool = True
-    screen_on: bool = True
+    presence_detected: bool = False
+    screen_on: bool = False
     last_change_ts: float = field(default_factory=time.time)
 
     def set_mode(self, new_mode: str):

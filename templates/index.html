@@ -7,10 +7,10 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <div class="screen" id="screen">
+  <div class="screen screen-off" id="screen">
     <div class="topbar">
-      <div class="estado" id="estado">CARGANDO...</div>
-      <div class="modo" id="modo">MODO: ...</div>
+      <div class="estado" id="estado">ESPERANDO PRESENCIA</div>
+      <div class="modo" id="modo">MODO: INFO</div>
     </div>
 
     <div class="panel panel-info" id="panelInfo">
@@ -34,7 +34,7 @@
         </div>
 
         <div class="info-card">
-          <div class="label">Dolar</div>
+          <div class="label">D�lar</div>
           <div class="value" id="dolar">--</div>
         </div>
       </div>
@@ -56,7 +56,7 @@
       <div class="ia-subtitle">Preguntame algo...</div>
     </div>
   </div>
-  <script>
+    <script>
     const horaEl = document.getElementById("hora");
     const fechaEl = document.getElementById("fecha");
     const estadoEl = document.getElementById("estado");
@@ -165,7 +165,7 @@
     actualizarInfo();
 
     setInterval(actualizarHoraLocal, 1000);
-    setInterval(actualizarStatus, 3000);
+    setInterval(actualizarStatus, 500);
     setInterval(actualizarInfo, 300000);
   </script>
 </body>
