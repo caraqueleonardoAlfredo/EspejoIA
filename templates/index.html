@@ -8,53 +8,74 @@
 </head>
 
 <body>
- <div class="screen">
-  <div class="hora" id="hora">--:--:--</div>
-  <div class="estado" id="estado">CARGANDO...</div>
-  <div class="modo" id="modo">MODO: ...</div>
+  <div class="screen">
+    <div class="hora" id="hora">--:--:--</div>
+    <div class="estado" id="estado">CARGANDO...</div>
+    <div class="modo" id="modo">MODO: ...</div>
 
-  <!-- Paneles por modo -->
-  <div class="panel panel-info" id="panelInfo">
-    <div class="frase" id="frase">Decime algo...</div>
+    <div class="panel panel-info" id="panelInfo">
+      <div class="frase" id="frase">Decime algo...</div>
+    </div>
+
+    <div class="panel panel-domotica" id="panelDomotica" style="display:none;">
+      <iframe
+        id="haFrame"
+        src=""
+        style="width:100%; height:80vh; border:none; border-radius:12px;"
+      ></iframe>
+    </div>
+
+    <div class="panel panel-ai" id="panelAI" style="display:none;">
+      <div class="frase">Dianuby AI</div>
+      <div class="frase" id="aiMsg">Preguntame algo...</div>
+    </div>
   </div>
 
-  <div class="panel panel-domotica" id="panelDomotica" style="display:none;">
-    <div class="frase">Panel Domótica</div>
-    <div class="frase" id="domoticaMsg">Decí: "encendé la luz"</div>
-  </div>
+  <script>
+  let ultimoModo = null;
+  let haCargado = false;
 
-  <div class="panel panel-ai" id="panelAI" style="display:none;">
-    <div class="frase">Dianuby AI</div>
-    <div class="frase" id="aiMsg">Preguntame algo...</div>
-  </div>
-</div>
-
-
-<script>
   async function actualizar() {
     try {
       const res = await fetch("/api/status");
       const data = await res.json();
 
-      document.getElementById("modo").textContent = "MODO: " + (data.modo || "INFO");
-
-      // Mostrar/ocultar paneles según modo
-      document.getElementById("panelInfo").style.display = (data.modo === "INFO") ? "block" : "none";
-      document.getElementById("panelDomotica").style.display = (data.modo === "DOMOTICA") ? "block" : "none";
-      document.getElementById("panelAI").style.display = (data.modo === "AI") ? "block" : "none";
-
-
       document.getElementById("hora").textContent = data.hora;
       document.getElementById("estado").textContent = data.estado;
+      document.getElementById("modo").textContent = "MODO: " + (data.modo || "INFO");
+
+      const panelInfo = document.getElementById("panelInfo");
+      const panelDomotica = document.getElementById("panelDomotica");
+      const panelAI = document.getElementById("panelAI");
+      const haFrame = document.getElementById("haFrame");
+
+      panelInfo.style.display = data.modo === "INFO" ? "block" : "none";
+      panelDomotica.style.display = data.modo === "DOMOTICA" ? "block" : "none";
+      panelAI.style.display = data.modo === "AI" ? "block" : "none";
+
       document.getElementById("frase").textContent = data.frase || "Decime algo...";
+
+      // Cargar Home Assistant SOLO una vez al entrar a DOMOTICA
+      if (data.modo === "DOMOTICA" && ultimoModo !== "DOMOTICA") {
+        haFrame.src = data.ha_url;
+        haCargado = true;
+      }
+
+      // Cuando sal�s de DOMOTICA, limpiar
+      if (data.modo !== "DOMOTICA" && ultimoModo === "DOMOTICA") {
+        haFrame.src = "";
+        haCargado = false;
+      }
+
+      ultimoModo = data.modo;
+
     } catch (e) {
-      document.getElementById("estado").textContent = "ERROR CONEXIÓN";
+      document.getElementById("estado").textContent = "ERROR DE CONEXION";
     }
   }
 
   actualizar();
   setInterval(actualizar, 1000);
-
-  </script>
+</script>
 </body>
 </html>
