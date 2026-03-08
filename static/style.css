@@ -17,6 +17,7 @@ body {
   flex-direction: column;
   padding: 24px 28px;
   background: black;
+  transition: opacity 0.25s ease;
 }
 
 .screen-off {
@@ -120,7 +121,8 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 18px;
+  gap: 22px;
+  text-align: center;
 }
 
 .ia-title {
@@ -129,9 +131,51 @@ body {
   letter-spacing: 1px;
 }
 
+.ia-status {
+  font-size: 24px;
+  opacity: 0.75;
+  letter-spacing: 2px;
+}
+
 .ia-subtitle {
-  font-size: 28px;
+  font-size: 30px;
+  opacity: 0.9;
+  max-width: 70vw;
+  line-height: 1.35;
+}
+
+.ia-talk-button {
+  margin-top: 8px;
+  min-width: 340px;
+  min-height: 90px;
+  padding: 18px 26px;
+  border-radius: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.ia-talk-button:active,
+.ia-talk-button.recording {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.ia-transcript {
+  margin-top: 6px;
+  font-size: 22px;
   opacity: 0.82;
+  max-width: 70vw;
+  min-height: 32px;
 }
 
 @media (max-width: 900px) {
@@ -153,5 +197,23 @@ body {
 
   .frase {
     font-size: 20px;
+  }
+
+  .ia-title {
+    font-size: 40px;
+  }
+
+  .ia-subtitle {
+    font-size: 22px;
+  }
+
+  .ia-talk-button {
+    min-width: 280px;
+    min-height: 82px;
+    font-size: 20px;
+  }
+
+  .ia-transcript {
+    font-size: 18px;
   }
 }

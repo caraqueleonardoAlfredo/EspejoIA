@@ -11,29 +11,33 @@ class MirrorController:
         self.gesture_cooldown = 0.25
         self.last_gesture_state = None
 
-    # -----------------------------
-    # PRESENCIA
-    # -----------------------------
+    def _apply_mode_ui(self, mode: str):
+        mode = mode.upper()
+        STATE.set_mode(mode)
+
+        if mode == "INFO":
+            STATE.status_text = "FUNCIONANDO"
+            STATE.last_phrase = "Desliza la mano para cambiar de modo"
+
+        elif mode == "DOMOTICA":
+            STATE.status_text = "DOMOTICA"
+            STATE.last_phrase = "Panel dom�tico activo"
+
+        elif mode == "IA":
+            STATE.status_text = "IA"
+            STATE.last_phrase = "Manten� presionado el bot�n para hablar"
+
     def set_presence(self, detected: bool):
         STATE.presence_detected = detected
 
         if detected:
             STATE.screen_on = True
-            STATE.set_mode("INFO")
-            STATE.status_text = "FUNCIONANDO"
-            STATE.last_phrase = "Desliza la mano para cambiar de modo"
+            self._apply_mode_ui("INFO")
         else:
             STATE.screen_on = False
             STATE.status_text = "ESPERANDO PRESENCIA"
+            STATE.last_phrase = "Desliza la mano para cambiar de modo"
 
-    # -----------------------------
-    # GESTO POR DOS ENTRADAS
-    # s1 y s2 son bool
-    # 00 -> INFO
-    # 10 -> DOMOTICA
-    # 01 -> IA
-    # 11 -> INFO
-    # -----------------------------
     def set_gesture_state(self, s1: bool, s2: bool):
         now = time.time()
         nuevo_estado = (int(s1), int(s2))
@@ -53,30 +57,27 @@ class MirrorController:
         self.last_gesture_change_time = now
 
         if nuevo_estado == (1, 0):
-            STATE.set_mode("DOMOTICA")
+            self._apply_mode_ui("DOMOTICA")
         elif nuevo_estado == (0, 1):
-            STATE.set_mode("IA")
+            self._apply_mode_ui("IA")
         elif nuevo_estado == (1, 1):
-            STATE.set_mode("INFO")
+            self._apply_mode_ui("INFO")
         elif nuevo_estado == (0, 0):
-            STATE.set_mode("INFO")
+            self._apply_mode_ui("INFO")
 
         return STATE.mode
 
-    # -----------------------------
-    # CAMBIO DE MODO MANUAL
-    # -----------------------------
     def next_mode(self):
         idx = MODOS.index(STATE.mode)
         next_mode = MODOS[(idx + 1) % len(MODOS)]
-        STATE.set_mode(next_mode)
+        self._apply_mode_ui(next_mode)
         return STATE.mode
 
     def set_mode(self, mode: str):
-        mode = mode.upper()
+        mode = (mode or "INFO").upper()
 
         if mode in MODOS:
-            STATE.set_mode(mode)
+            self._apply_mode_ui(mode)
 
         return STATE.mode
 

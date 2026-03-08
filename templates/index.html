@@ -53,9 +53,17 @@
 
     <div class="panel panel-ia" id="panelIA" style="display:none;">
       <div class="ia-title">Dianuby IA</div>
-      <div class="ia-subtitle">Preguntame algo...</div>
+      <div class="ia-status" id="iaStatus">IA</div>
+      <div class="ia-subtitle" id="iaSubtitle">Manten� presionado el bot�n para hablar</div>
+
+      <button class="ia-talk-button" id="iaTalkButton" type="button">
+        MANTEN� PRESIONADO PARA HABLAR
+      </button>
+
+      <div class="ia-transcript" id="iaTranscript">Tu pregunta aparecer� aqu�</div>
     </div>
   </div>
+
     <script>
     const horaEl = document.getElementById("hora");
     const fechaEl = document.getElementById("fecha");
@@ -74,22 +82,133 @@
     const haFrame = document.getElementById("haFrame");
     const screen = document.getElementById("screen");
 
+    const iaStatus = document.getElementById("iaStatus");
+    const iaSubtitle = document.getElementById("iaSubtitle");
+    const iaTalkButton = document.getElementById("iaTalkButton");
+    const iaTranscript = document.getElementById("iaTranscript");
+
     let ultimoModo = null;
     let haCargado = false;
 
+    let iaMediaRecorder = null;
+    let iaChunks = [];
+    let iaStream = null;
+    let iaRecording = false;
+    let iaProcessing = false;
+
     function actualizarHoraLocal() {
-      const ahora = new Date();
+        const ahora = new Date();
 
-      horaEl.textContent = ahora.toLocaleTimeString("es-AR", {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+        horaEl.textContent = ahora.toLocaleTimeString("es-AR", {
+          hour: "2-digit",
+          minute: "2-digit"
+        });
 
-      fechaEl.textContent = ahora.toLocaleDateString("es-AR", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long"
-      });
+        fechaEl.textContent = ahora.toLocaleDateString("es-AR", {
+          weekday: "long",
+          day: "2-digit",
+          month: "long"
+        });
+      }
+
+    function setIALocalState(status, subtitle, buttonPressed = false) {
+      iaStatus.textContent = status;
+      iaSubtitle.textContent = subtitle;
+
+      if (buttonPressed) {
+        iaTalkButton.classList.add("recording");
+      } else {
+        iaTalkButton.classList.remove("recording");
+      }
+    }
+
+    async function ensureIAStream() {
+      if (iaStream) return iaStream;
+
+      iaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      return iaStream;
+    }
+
+    function createRecorder(stream) {
+      let options = {};
+
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        options.mimeType = "audio/webm;codecs=opus";
+      }
+
+      return new MediaRecorder(stream, options);
+    }
+
+    async function startIARecording() {
+      if (ultimoModo !== "IA") return;
+      if (iaRecording || iaProcessing) return;
+
+      try {
+        const stream = await ensureIAStream();
+
+        iaChunks = [];
+        iaMediaRecorder = createRecorder(stream);
+
+        iaMediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            iaChunks.push(event.data);
+          }
+        };
+
+        iaMediaRecorder.onstop = async () => {
+          iaRecording = false;
+          iaProcessing = true;
+          setIALocalState("PROCESANDO", "Procesando...", false);
+
+          const blob = new Blob(iaChunks, { type: iaMediaRecorder.mimeType || "audio/webm" });
+          const formData = new FormData();
+          formData.append("audio", blob, "pregunta.webm");
+
+          try {
+            const response = await fetch("/api/ia/process_audio", {
+              method: "POST",
+              body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+              iaTranscript.textContent = data.transcript || "Sin transcripci�n";
+              setIALocalState("IA", data.response || "Respuesta generada", false);
+            } else {
+              iaTranscript.textContent = "Sin transcripci�n";
+              setIALocalState("IA", data.error || "Error procesando audio", false);
+            }
+          } catch (error) {
+            console.error("Error enviando audio:", error);
+            iaTranscript.textContent = "Sin transcripci�n";
+            setIALocalState("IA", "Error de conexi�n al procesar audio", false);
+          } finally {
+            iaProcessing = false;
+          }
+        };
+
+        iaMediaRecorder.start();
+        iaRecording = true;
+        iaTranscript.textContent = "Grabando pregunta...";
+        setIALocalState("ESCUCHANDO", "Escuchando... solt� para procesar", true);
+
+      } catch (error) {
+        console.error("Error iniciando grabaci�n:", error);
+        setIALocalState("IA", "No se pudo acceder al micr�fono del navegador", false);
+      }
+    }
+
+    function stopIARecording() {
+      if (!iaRecording || !iaMediaRecorder) return;
+
+      try {
+        if (iaMediaRecorder.state !== "inactive") {
+          iaMediaRecorder.stop();
+        }
+      } catch (error) {
+        console.error("Error deteniendo grabaci�n:", error);
+      }
     }
 
     async function actualizarStatus() {
@@ -118,11 +237,23 @@
           panelInfo.style.display = "none";
           panelDomotica.style.display = "none";
           panelIA.style.display = "flex";
+
+          if (!iaRecording && !iaProcessing) {
+            iaStatus.textContent = data.estado || "IA";
+            iaSubtitle.textContent = data.frase || "Manten� presionado el bot�n para hablar";
+          }
         }
 
         if (ultimoModo === "DOMOTICA" && data.modo !== "DOMOTICA") {
           haFrame.src = "";
           haCargado = false;
+        }
+
+        if (ultimoModo === "IA" && data.modo !== "IA") {
+          if (iaRecording) stopIARecording();
+          iaRecording = false;
+          iaProcessing = false;
+          iaTalkButton.classList.remove("recording");
         }
 
         if (data.screen_on === false) {
@@ -160,6 +291,28 @@
       }
     }
 
+    iaTalkButton.addEventListener("pointerdown", async (e) => {
+      e.preventDefault();
+      await startIARecording();
+    });
+
+    iaTalkButton.addEventListener("pointerup", (e) => {
+      e.preventDefault();
+      stopIARecording();
+    });
+
+    iaTalkButton.addEventListener("pointercancel", (e) => {
+      e.preventDefault();
+      stopIARecording();
+    });
+
+    iaTalkButton.addEventListener("pointerleave", (e) => {
+      if (iaRecording) {
+        e.preventDefault();
+        stopIARecording();
+      }
+    });
+
     actualizarHoraLocal();
     actualizarStatus();
     actualizarInfo();
@@ -167,6 +320,6 @@
     setInterval(actualizarHoraLocal, 1000);
     setInterval(actualizarStatus, 500);
     setInterval(actualizarInfo, 300000);
-  </script>
-</body>
-</html>
+      </script>
+    </body>
+</html>  
