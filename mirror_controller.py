@@ -1,7 +1,6 @@
 from state import STATE
 import time
 
-
 MODOS = ["INFO", "DOMOTICA", "IA"]
 
 
@@ -38,9 +37,24 @@ class MirrorController:
             STATE.status_text = "ESPERANDO PRESENCIA"
             STATE.last_phrase = "Desliza la mano para cambiar de modo"
 
+        print(
+            f"[MIRROR] Presencia={STATE.presence_detected} | "
+            f"Pantalla={STATE.screen_on} | "
+            f"Modo={STATE.mode}"
+        )
+
     def set_gesture_state(self, s1: bool, s2: bool):
+        """
+        Nueva l�gica del sensor de gesto:
+        0 0 -> INFO
+        0 1 -> DOMOTICA
+        1 1 -> IA
+        1 0 -> ignorado (estado intermedio)
+        """
         now = time.time()
         nuevo_estado = (int(s1), int(s2))
+
+        print(f"[MIRROR] Gesto recibido -> G1={nuevo_estado[0]} G2={nuevo_estado[1]}")
 
         if not STATE.screen_on:
             self.last_gesture_state = nuevo_estado
@@ -56,15 +70,20 @@ class MirrorController:
         self.last_gesture_state = nuevo_estado
         self.last_gesture_change_time = now
 
-        if nuevo_estado == (1, 0):
-            self._apply_mode_ui("DOMOTICA")
-        elif nuevo_estado == (0, 1):
-            self._apply_mode_ui("IA")
-        elif nuevo_estado == (1, 1):
-            self._apply_mode_ui("INFO")
-        elif nuevo_estado == (0, 0):
+        if nuevo_estado == (0, 0):
             self._apply_mode_ui("INFO")
 
+        elif nuevo_estado == (0, 1):
+            self._apply_mode_ui("DOMOTICA")
+
+        elif nuevo_estado == (1, 1):
+            self._apply_mode_ui("IA")
+
+        elif nuevo_estado == (1, 0):
+            print("[MIRROR] Estado intermedio 1,0 -> se mantiene el modo actual")
+            return STATE.mode
+
+        print(f"[MIRROR] Modo actual -> {STATE.mode}")
         return STATE.mode
 
     def next_mode(self):
@@ -75,10 +94,8 @@ class MirrorController:
 
     def set_mode(self, mode: str):
         mode = (mode or "INFO").upper()
-
         if mode in MODOS:
             self._apply_mode_ui(mode)
-
         return STATE.mode
 
 
