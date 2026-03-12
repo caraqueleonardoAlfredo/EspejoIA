@@ -14,10 +14,10 @@ async def _generar_tts_async(texto: str, output_file: str) -> None:
     await communicate.save(output_file)
 
 
-def hablar_texto(texto: str) -> bool:
+def hablar(texto: str) -> bool:
     """
-    Genera un MP3 con edge-tts y lo reproduce con ffplay.
-    Devuelve True si todo sali� bien, False si hubo error.
+    Genera audio TTS con edge-tts y lo reproduce con ffplay.
+    Devuelve True si sali� bien, False si hubo error.
     """
     texto = (texto or "").strip()
     if not texto:
@@ -54,3 +54,10 @@ def hablar_texto(texto: str) -> bool:
                 os.remove(tmp_path)
             except Exception:
                 pass
+
+
+def hablar_texto(texto: str) -> bool:
+    """
+    Alias para mantener compatibilidad si en alg�n lado llam�s hablar_texto().
+    """
+    return hablar(texto)
