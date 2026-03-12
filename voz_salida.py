@@ -2,49 +2,55 @@ import asyncio
 import os
 import subprocess
 import tempfile
+from pathlib import Path
 
 import edge_tts
 
-# Voz neural en espa�ol (Argentina)
-VOZ = "es-AR-ElenaNeural"
+VOICE = "es-AR-ElenaNeural"
 
 
-async def _generar_mp3(texto: str, ruta_mp3: str) -> None:
-    """Genera un MP3 con Edge TTS y lo guarda en ruta_mp3."""
-    communicate = edge_tts.Communicate(texto, VOZ)
-    await communicate.save(ruta_mp3)
+async def _generar_tts_async(texto: str, output_file: str) -> None:
+    communicate = edge_tts.Communicate(texto, VOICE)
+    await communicate.save(output_file)
 
 
-def _reproducir_mp3_ffplay(ruta_mp3: str) -> None:
+def hablar_texto(texto: str) -> bool:
     """
-    Reproduce un mp3 de forma robusta en Raspberry.
-    Requiere: sudo apt install ffmpeg
-    """
-    subprocess.run(
-        ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", ruta_mp3],
-        check=False
-    )
-
-
-def hablar(texto: str) -> None:
-    """
-    1) Genera audio con Edge TTS (async)
-    2) Reproduce el mp3 con ffplay
-    3) Borra el archivo temporal
+    Genera un MP3 con edge-tts y lo reproduce con ffplay.
+    Devuelve True si todo sali� bien, False si hubo error.
     """
     texto = (texto or "").strip()
     if not texto:
-        return
+        print("[voz_salida] Texto vac�o, no se reproduce nada.")
+        return False
 
-    # Creamos archivo temporal �nico (evita conflictos si habl�s seguido)
-    fd, ruta_mp3 = tempfile.mkstemp(prefix="tts_", suffix=".mp3")
-    os.close(fd)
+    tmp_path = None
 
     try:
-        asyncio.run(_generar_mp3(texto, ruta_mp3))
-        _reproducir_mp3_ffplay(ruta_mp3)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            tmp_path = tmp.name
+
+        asyncio.run(_generar_tts_async(texto, tmp_path))
+
+        cmd = [
+            "ffplay",
+            "-nodisp",
+            "-autoexit",
+            "-loglevel",
+            "quiet",
+            tmp_path,
+        ]
+
+        subprocess.run(cmd, check=True)
+        return True
+
+    except Exception as e:
+        print(f"[voz_salida] Error reproduciendo audio: {e}")
+        return False
+
     finally:
-        try:
-            os.remove(ruta_mp3)
-        except Exception:
-            pass
+        if tmp_path and Path(tmp_path).exists():
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
