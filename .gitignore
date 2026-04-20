@@ -5,4 +5,6 @@ __pycache__
 alsa_err.log
 tts_*.mp3
 .env
+api.txt
+
 

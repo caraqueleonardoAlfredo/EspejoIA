@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Outfit AR</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      color: white;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      padding: 26px;
+      text-align: center;
+      background: #000;
+    }
+
+    #startScreen.hidden {
+      display: none;
+    }
+
+    .title {
+      font-size: 44px;
+      font-weight: bold;
+      line-height: 1.1;
+    }
+
+    .description {
+      max-width: 720px;
+      font-size: 20px;
+      line-height: 1.4;
+      opacity: 0.78;
+    }
+
+    .actions {
+      display: flex;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      min-width: 150px;
+      min-height: 58px;
+      padding: 14px 22px;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      border: 0;
+      background: #ffffff;
+      color: #000;
+    }
+
+    .secondary-btn {
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+     #app {
+      position: fixed;
+      inset: 0;
+      display: none;
+      background: #000;
+    }
+
+    #app.active {
+      display: block;
+    }
+
+    #output {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+
+    #status {
+      max-width: 62%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.62);
+      color: #f1f1f1;
+      font-size: 16px;
+      line-height: 1.4;
+      pointer-events: auto;
+      white-space: pre-wrap;
+    }
+
+    #closeBtn {
+      min-width: 118px;
+      min-height: 52px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      background: rgba(0, 0, 0, 0.68);
+      color: white;
+      pointer-events: auto;
+    }
+
+    .bottom-panel {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      width: min(96vw, 980px);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .catalogo-wrapper {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.52);
+      pointer-events: auto;
+    }
+
+    .catalogo-title {
+      text-align: center;
+      font-size: 16px;
+      color: #d9d9d9;
+      margin-bottom: 10px;
+    }
+
+    .catalogo {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 6px;
+    }
+
+    .card-img {
+      flex: 0 0 auto;
+      width: 118px;
+      height: 118px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      background: #111;
+      transition: transform 0.12s ease, border-color 0.15s ease;
+    }
+
+    .card-img:active {
+      transform: scale(0.97);
+    }
+
+    .card-img.active {
+      border-color: #ffffff;
+    }
+
+    .card-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    #loadingOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 9;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.38);
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #loadingOverlay.active {
+      display: flex;
+    }
+
+    @media (max-width: 700px) {
+      .title {
+        font-size: 34px;
+      }
+
+      .description {
+        font-size: 17px;
+      }
+
+      #status {
+        max-width: 70%;
+        font-size: 14px;
+      }
+
+      .card-img {
+        width: 96px;
+        height: 96px;
+      }
+    }
+  </style>
+
+  </head>
+<body>
+  <div id="startScreen">
+    <div class="title">Outfit AR</div>
+    <div class="description">
+      Inicia la camara y selecciona una referencia para aplicar la transformacion visual.
+    </div>
+    <div class="actions">
+      <button id="startBtn" class="primary-btn" type="button">Iniciar</button>
+      <button id="backStartBtn" class="secondary-btn" type="button">Volver</button>
+    </div>
+  </div>
+
+  <div id="app">
+    <video id="output" autoplay muted playsinline></video>
+
+    <div id="loadingOverlay">Conectando...</div>
+
+    <div class="top-bar">
+      <div id="status">Esperando inicio...</div>
+      <button id="closeBtn" type="button">Volver</button>
+    </div>
+
+    <div class="bottom-panel">
+      <div class="catalogo-wrapper">
+        <div class="catalogo-title">Selecciona una imagen</div>
+
+        <div class="catalogo" id="catalogo">
+          <div class="card-img" onclick="selectOutfit(this, '/static/outfits/outfit1.jpg')">
+            <img src="/static/outfits/outfit1.jpg" alt="Outfit 1">
+          </div>
+
+          <div class="card-img" onclick="selectOutfit(this, '/static/outfits/outfit2.jpg')">
+            <img src="/static/outfits/outfit2.jpg" alt="Outfit 2">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script type="module">
+    import { createDecartClient, models } from "https://esm.sh/@decartai/sdk";
+
+    const DECART_API_KEY = "PEGAR_API_KEY_AQUI";
+
+    const startScreen = document.getElementById("startScreen");
+    const app = document.getElementById("app");
+    const startBtn = document.getElementById("startBtn");
+    const backStartBtn = document.getElementById("backStartBtn");
+    const closeBtn = document.getElementById("closeBtn");
+    const outputVideo = document.getElementById("output");
+    const statusEl = document.getElementById("status");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+
+    const model = models.realtime("lucy-2");
+
+    let stream = null;
+    let realtimeClient = null;
+    let isStarting = false;
+    let isClosing = false;
+
+    function setStatus(msg) {
+      console.log(msg);
+      statusEl.textContent = msg;
+    }
+
+    function showLoading(text = "Cargando...") {
+      loadingOverlay.textContent = text;
+      loadingOverlay.classList.add("active");
+    }
+
+    function hideLoading() {
+      loadingOverlay.classList.remove("active");
+    }
+
+    function goBackToMirror() {
+      window.location.href = "/";
+    }
+
+    async function startApp() {
+      if (isStarting) return;
+      isStarting = true;
+
+      try {
+        startBtn.disabled = true;
+        showLoading("Solicitando acceso a camara...");
+        setStatus("Solicitando acceso a camara...");
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            frameRate: { ideal: model.fps },
+            width: { ideal: model.width },
+            height: { ideal: model.height },
+            facingMode: "user",
+          },
+          audio: false,
+        });
+
+        setStatus("Camara iniciada. Conectando con Lucy 2...");
+        showLoading("Conectando con Lucy 2...");
+
+        const client = createDecartClient({
+          apiKey: DECART_API_KEY
+        });
+
+        realtimeClient = await client.realtime.connect(stream, {
+          model,
+          onRemoteStream: async (transformedStream) => {
+            outputVideo.srcObject = transformedStream;
+            await outputVideo.play().catch(() => {});
+            setStatus("Todo listo. Selecciona una imagen.");
+            hideLoading();
+          },
+        });
+
+        startScreen.classList.add("hidden");
+        app.classList.add("active");
+
+      } catch (error) {
+        console.error(error);
+        setStatus("ERROR:\n" + (error?.message || error));
+        hideLoading();
+        startBtn.disabled = false;
+      } finally {
+        isStarting = false;
+      }
+    }
+ async function closeApp() {
+      if (isClosing) return;
+      isClosing = true;
+
+      try {
+        showLoading("Cerrando conexion...");
+        setStatus("Cerrando camara y desconectando...");
+
+        if (realtimeClient) {
+          try {
+            realtimeClient.disconnect();
+          } catch (e) {
+            console.error("Error al desconectar realtimeClient:", e);
+          }
+          realtimeClient = null;
+        }
+
+        if (stream) {
+          try {
+            stream.getTracks().forEach(track => track.stop());
+          } catch (e) {
+            console.error("Error al detener tracks:", e);
+          }
+          stream = null;
+        }
+
+        if (outputVideo.srcObject) {
+          try {
+            const currentStream = outputVideo.srcObject;
+            if (currentStream && currentStream.getTracks) {
+              currentStream.getTracks().forEach(track => track.stop());
+            }
+          } catch (e) {
+            console.error("Error al limpiar output stream:", e);
+          }
+          outputVideo.srcObject = null;
+        }
+
+        document.querySelectorAll(".card-img").forEach(card => {
+          card.classList.remove("active");
+        });
+
+        app.classList.remove("active");
+        startScreen.classList.remove("hidden");
+        startBtn.disabled = false;
+
+        hideLoading();
+        setStatus("Esperando inicio...");
+        goBackToMirror();
+
+      } catch (error) {
+        console.error(error);
+        setStatus("ERROR al cerrar:\n" + (error?.message || error));
+        hideLoading();
+      } finally {
+        isClosing = false;
+      }
+    }
+
+    window.selectOutfit = async (card, imagePath) => {
+      try {
+        if (!realtimeClient) {
+          setStatus("Primero presiona Iniciar.");
+          return;
+        }
+
+        document.querySelectorAll(".card-img").forEach(item => {
+          item.classList.remove("active");
+        });
+        card.classList.add("active");
+
+        setStatus("Cargando imagen de referencia...");
+        showLoading("Aplicando referencia...");
+
+        const res = await fetch(imagePath);
+        if (!res.ok) {
+          throw new Error("No se pudo cargar la imagen: " + imagePath);
+        }
+
+        const outfitImage = await res.blob();
+
+        setStatus("Enviando imagen a Lucy 2...");
+
+        await realtimeClient.set({
+          prompt: "Change the person's appearance to match the reference image.",
+          image: outfitImage,
+          enhance: true,
+        });
+
+        setStatus("Transformacion aplicada.");
+        hideLoading();
+
+      } catch (error) {
+        console.error(error);
+        setStatus("ERROR al seleccionar imagen:\n" + (error?.message || error));
+        hideLoading();
+      }
+    };
+
+    startBtn.addEventListener("click", startApp);
+    backStartBtn.addEventListener("click", goBackToMirror);
+    closeBtn.addEventListener("click", closeApp);
+
+    window.addEventListener("beforeunload", () => {
+      try {
+        if (realtimeClient) {
+          realtimeClient.disconnect();
+        }
+
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+
+        if (outputVideo.srcObject && outputVideo.srcObject.getTracks) {
+          outputVideo.srcObject.getTracks().forEach(track => track.stop());
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>

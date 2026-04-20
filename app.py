@@ -15,6 +15,11 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/outfit-ar")
+def outfit_ar():
+    return render_template("outfit_ar.html")
+
+
 @app.route("/api/status")
 def api_status():
     return jsonify({
@@ -79,7 +84,7 @@ def ia_process_audio():
     if not STATE.screen_on or STATE.mode != "IA":
         return jsonify({
             "ok": False,
-            "error": "El espejo no est� en modo IA.",
+            "error": "El espejo no esta en modo IA.",
             "transcript": "",
             "response": ""
         }), 400
@@ -87,7 +92,7 @@ def ia_process_audio():
     if "audio" not in request.files:
         return jsonify({
             "ok": False,
-            "error": "No se recibi� archivo de audio.",
+            "error": "No se recibio archivo de audio.",
             "transcript": "",
             "response": ""
         }), 400

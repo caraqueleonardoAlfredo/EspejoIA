@@ -34,7 +34,7 @@
         </div>
 
         <div class="info-card">
-          <div class="label">D�lar</div>
+          <div class="label">Dolar</div>
           <div class="value" id="dolar">--</div>
         </div>
       </div>
@@ -52,19 +52,40 @@
     </div>
 
     <div class="panel panel-ia" id="panelIA" style="display:none;">
-      <div class="ia-title">Dianuby IA</div>
-      <div class="ia-status" id="iaStatus">IA</div>
-      <div class="ia-subtitle" id="iaSubtitle">Manten� presionado el bot�n para hablar</div>
+      <div class="ia-menu" id="iaMenu">
+        <div class="ia-title">Modo IA</div>
+        <div class="ia-subtitle">Selecciona una experiencia</div>
 
-      <button class="ia-talk-button" id="iaTalkButton" type="button">
-        MANTEN� PRESIONADO PARA HABLAR
-      </button>
+        <div class="ia-options">
+          <button class="ia-option-card" id="openAssistantButton" type="button">
+            <span class="ia-option-title">Asistente IA</span>
+            <span class="ia-option-text">Habla con el espejo usando el microfono.</span>
+          </button>
 
-      <div class="ia-transcript" id="iaTranscript">Tu pregunta aparecer� aqu�</div>
+          <button class="ia-option-card" id="openOutfitButton" type="button">
+            <span class="ia-option-title">Outfit AR</span>
+            <span class="ia-option-text">Activa la camara y prueba referencias visuales.</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ia-assistant" id="iaAssistant" style="display:none;">
+        <button class="ia-back-button" id="iaBackButton" type="button">Volver</button>
+
+        <div class="ia-title">Asistente IA</div>
+        <div class="ia-status" id="iaStatus">IA</div>
+        <div class="ia-subtitle" id="iaSubtitle">Mantene presionado el boton para hablar</div>
+
+        <button class="ia-talk-button" id="iaTalkButton" type="button">
+          MANTENE PRESIONADO PARA HABLAR
+        </button>
+
+        <div class="ia-transcript" id="iaTranscript">Tu pregunta aparecera aqui</div>
+      </div>
     </div>
   </div>
 
-    <script>
+  <script>
     const horaEl = document.getElementById("hora");
     const fechaEl = document.getElementById("fecha");
     const estadoEl = document.getElementById("estado");
@@ -82,6 +103,12 @@
     const haFrame = document.getElementById("haFrame");
     const screen = document.getElementById("screen");
 
+    const iaMenu = document.getElementById("iaMenu");
+    const iaAssistant = document.getElementById("iaAssistant");
+    const openAssistantButton = document.getElementById("openAssistantButton");
+    const openOutfitButton = document.getElementById("openOutfitButton");
+    const iaBackButton = document.getElementById("iaBackButton");
+
     const iaStatus = document.getElementById("iaStatus");
     const iaSubtitle = document.getElementById("iaSubtitle");
     const iaTalkButton = document.getElementById("iaTalkButton");
@@ -89,6 +116,7 @@
 
     let ultimoModo = null;
     let haCargado = false;
+    let iaView = "menu";
 
     let iaMediaRecorder = null;
     let iaChunks = [];
@@ -96,20 +124,45 @@
     let iaRecording = false;
     let iaProcessing = false;
 
-    function actualizarHoraLocal() {
-        const ahora = new Date();
 
-        horaEl.textContent = ahora.toLocaleTimeString("es-AR", {
-          hour: "2-digit",
-          minute: "2-digit"
-        });
+ function actualizarHoraLocal() {
+      const ahora = new Date();
 
-        fechaEl.textContent = ahora.toLocaleDateString("es-AR", {
-          weekday: "long",
-          day: "2-digit",
-          month: "long"
-        });
+      horaEl.textContent = ahora.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      fechaEl.textContent = ahora.toLocaleDateString("es-AR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long"
+      });
+    }
+
+    function showIAMenu() {
+      iaView = "menu";
+      iaMenu.style.display = "flex";
+      iaAssistant.style.display = "none";
+
+      if (iaRecording) {
+        stopIARecording();
       }
+    }
+
+    function showIAAssistant() {
+      iaView = "assistant";
+      iaMenu.style.display = "none";
+      iaAssistant.style.display = "flex";
+    }
+
+    function openOutfitAR() {
+      if (iaRecording) {
+        stopIARecording();
+      }
+
+      window.location.href = "/outfit-ar";
+    }
 
     function setIALocalState(status, subtitle, buttonPressed = false) {
       iaStatus.textContent = status;
@@ -142,6 +195,7 @@
     async function startIARecording() {
       if (ultimoModo !== "IA") return;
       if (iaRecording || iaProcessing) return;
+      if (iaRecording || iaProcessing) return;
 
       try {
         const stream = await ensureIAStream();
@@ -173,16 +227,16 @@
             const data = await response.json();
 
             if (data.ok) {
-              iaTranscript.textContent = data.transcript || "Sin transcripci�n";
+              iaTranscript.textContent = data.transcript || "Sin transcripcion";
               setIALocalState("IA", data.response || "Respuesta generada", false);
             } else {
-              iaTranscript.textContent = "Sin transcripci�n";
+              iaTranscript.textContent = "Sin transcripcion";
               setIALocalState("IA", data.error || "Error procesando audio", false);
             }
           } catch (error) {
             console.error("Error enviando audio:", error);
-            iaTranscript.textContent = "Sin transcripci�n";
-            setIALocalState("IA", "Error de conexi�n al procesar audio", false);
+            iaTranscript.textContent = "Sin transcripcion";
+            setIALocalState("IA", "Error de conexion al procesar audio", false);
           } finally {
             iaProcessing = false;
           }
@@ -191,11 +245,11 @@
         iaMediaRecorder.start();
         iaRecording = true;
         iaTranscript.textContent = "Grabando pregunta...";
-        setIALocalState("ESCUCHANDO", "Escuchando... solt� para procesar", true);
+        setIALocalState("ESCUCHANDO", "Escuchando... solta para procesar", true);
 
       } catch (error) {
-        console.error("Error iniciando grabaci�n:", error);
-        setIALocalState("IA", "No se pudo acceder al micr�fono del navegador", false);
+        console.error("Error iniciando grabacion:", error);
+        setIALocalState("IA", "No se pudo acceder al microfono del navegador", false);
       }
     }
 
@@ -207,7 +261,7 @@
           iaMediaRecorder.stop();
         }
       } catch (error) {
-        console.error("Error deteniendo grabaci�n:", error);
+        console.error("Error deteniendo grabacion:", error);
       }
     }
 
@@ -240,7 +294,7 @@
 
           if (!iaRecording && !iaProcessing) {
             iaStatus.textContent = data.estado || "IA";
-            iaSubtitle.textContent = data.frase || "Manten� presionado el bot�n para hablar";
+            iaSubtitle.textContent = data.frase || "Manten presionado el boton para hablar";
           }
         }
 
@@ -254,6 +308,7 @@
           iaRecording = false;
           iaProcessing = false;
           iaTalkButton.classList.remove("recording");
+          showIAMenu();
         }
 
         if (data.screen_on === false) {
@@ -290,6 +345,10 @@
         dolarEl.textContent = "--";
       }
     }
+
+    openAssistantButton.addEventListener("click", showIAAssistant);
+    openOutfitButton.addEventListener("click", openOutfitAR);
+    iaBackButton.addEventListener("click", showIAMenu);
 
     iaTalkButton.addEventListener("pointerdown", async (e) => {
       e.preventDefault();
