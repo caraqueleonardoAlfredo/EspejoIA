@@ -285,7 +285,7 @@
 <script type="module">
     import { createDecartClient, models } from "https://esm.sh/@decartai/sdk";
 
-    const DECART_API_KEY = "PEGAR_API_KEY_AQUI";
+    const DECART_API_KEY = "dct_test2_vpzbkKAUzFopVUEgmeDLmonpYfuMKqnbNPctQqJwcZvvMoQWYmPJszrZJTlhjmMf";
 
     const startScreen = document.getElementById("startScreen");
     const app = document.getElementById("app");
@@ -330,15 +330,13 @@
         showLoading("Solicitando acceso a camara...");
         setStatus("Solicitando acceso a camara...");
 
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            frameRate: { ideal: model.fps },
-            width: { ideal: model.width },
-            height: { ideal: model.height },
-            facingMode: "user",
-          },
+       stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
           audio: false,
         });
+
+
+
 
         setStatus("Camara iniciada. Conectando con Lucy 2...");
         showLoading("Conectando con Lucy 2...");
@@ -457,6 +455,7 @@
           image: outfitImage,
           enhance: true,
         });
+
 
         setStatus("Transformacion aplicada.");
         hideLoading();

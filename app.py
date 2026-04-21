@@ -78,6 +78,11 @@ def screen_off():
     CONTROLLER.set_presence(False)
     return jsonify({"ok": True})
 
+@app.route("/camera-test")
+def camera_test():
+    return render_template("camera_test.html")
+
+
 
 @app.route("/api/ia/process_audio", methods=["POST"])
 def ia_process_audio():

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba de Camara USB</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 18px;
+    }
+    .top {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button {
+      min-width: 140px;
+      min-height: 48px;
+      padding: 10px 16px;
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #status {
+      white-space: pre-wrap;
+      font-size: 16px;
+      line-height: 1.35;
+      opacity: 0.9;
+    }
+    #video {
+      width: 100%;
+      height: calc(100vh - 170px);
+      background: #111;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <button id="startBtn" type="button">Iniciar camara</button>
+    <button id="stopBtn" type="button">Detener</button>
+  </div>
+
+  <div id="status">Listo para probar camara...</div>
+  <video id="video" autoplay playsinline muted></video>
+
+  <script>
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const statusEl = document.getElementById("status");
+    const videoEl = document.getElementById("video");
+
+    let currentStream = null;
+
+    function setStatus(text) {
+      console.log(text);
+      statusEl.textContent = text;
+    }
+
+    async function startCamera() {
+      try {
+        setStatus("Enumerando dispositivos...");
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === "videoinput");
+
+        setStatus(
+          "Dispositivos de video detectados: " + videoDevices.length + "\n" +
+          videoDevices.map((d, i) => `[${i}] ${d.label || "sin nombre"}`).join("\n")
+        );
+
+        setStatus(statusEl.textContent + "\n\nSolicitando acceso a camara USB...");
+
+        currentStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+
+        videoEl.srcObject = currentStream;
+
+        const track = currentStream.getVideoTracks()[0];
+        const settings = track ? track.getSettings() : {};
+
+        setStatus(
+          statusEl.textContent +
+          "\n\nCamara iniciada correctamente." +
+          "\nResolucion: " + (settings.width || "?") + "x" + (settings.height || "?")
+        );
+      } catch (error) {
+        console.error(error);
+        setStatus(
+          statusEl.textContent +
+          "\n\nERROR:\n" + (error && error.name ? error.name : "Error") +
+          "\n" + (error && error.message ? error.message : error)
+        );
+      }
+    }
+
+    function stopCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+
+      videoEl.srcObject = null;
+      setStatus("Camara detenida.");
+    }
+
+    startBtn.addEventListener("click", startCamera);
+    stopBtn.addEventListener("click", stopCamera);
+  </script>
+</body>
+</html>
