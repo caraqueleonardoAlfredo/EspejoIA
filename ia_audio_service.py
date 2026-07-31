@@ -3,7 +3,7 @@ import tempfile
 import subprocess
 import speech_recognition as sr
 
-from ia_simulada import responder
+from ai_service import responder_contextual
 from voz_salida import hablar
 
 
@@ -52,7 +52,7 @@ def process_uploaded_audio(file_storage):
                     "response": ""
                 }
 
-            response = responder(transcript)
+            response = responder_contextual(transcript, modo_actual="IA")
 
             hablar(response)
 
