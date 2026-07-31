@@ -20,22 +20,29 @@ class MirrorController:
 
         elif mode == "DOMOTICA":
             STATE.status_text = "DOMOTICA"
-            STATE.last_phrase = "Panel dom�tico activo"
+            STATE.last_phrase = "Panel domotico activo"
 
         elif mode == "IA":
             STATE.status_text = "IA"
-            STATE.last_phrase = "Manten� presionado el bot�n para hablar"
+            STATE.last_phrase = "Mantene presionado el boton para hablar"
 
     def set_presence(self, detected: bool):
+        estaba_encendida = STATE.screen_on
         STATE.presence_detected = detected
 
         if detected:
             STATE.screen_on = True
-            self._apply_mode_ui("INFO")
+
+            # Solo restaurar UI cuando la pantalla estaba apagada.
+            # No forzar INFO: volver al modo en el que quedo.
+            if not estaba_encendida:
+                modo_a_restaurar = STATE.mode if STATE.mode in MODOS else "INFO"
+                self._apply_mode_ui(modo_a_restaurar)
+
         else:
             STATE.screen_on = False
             STATE.status_text = "ESPERANDO PRESENCIA"
-            STATE.last_phrase = "Desliza la mano para cambiar de modo"
+            STATE.last_phrase = "Esperando presencia..."
 
         print(
             f"[MIRROR] Presencia={STATE.presence_detected} | "
@@ -45,7 +52,7 @@ class MirrorController:
 
     def set_gesture_state(self, s1: bool, s2: bool):
         """
-        Nueva l�gica del sensor de gesto:
+        Logica del sensor de gesto:
         0 0 -> INFO
         0 1 -> DOMOTICA
         1 1 -> IA
