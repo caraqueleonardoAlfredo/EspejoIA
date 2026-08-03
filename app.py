@@ -1,9 +1,14 @@
+import os
+
+from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify, request
 from state import STATE
 from mirror_controller import CONTROLLER
 from info_service import get_info_data
 from gpio_controller import start_gpio
 from ia_audio_service import process_uploaded_audio
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -17,7 +22,10 @@ def home():
 
 @app.route("/outfit-ar")
 def outfit_ar():
-    return render_template("outfit_ar.html")
+    return render_template(
+        "outfit_ar.html",
+        decart_api_key=os.getenv("DECART_API_KEY", ""),
+    )
 
 
 @app.route("/api/status")

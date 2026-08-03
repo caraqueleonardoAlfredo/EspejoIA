@@ -285,9 +285,13 @@
     </div>
   </div>
 <script type="module">
-    import { createDecartClient, models } from "https://esm.sh/@decartai/sdk";
+    import {
+      createDecartClient,
+      models,
+      noopLogger
+    } from "/static/vendor/decart-sdk.js";
 
-    const DECART_API_KEY = "dct_test1_reeEgyOpEpeuApFNRGjQyJtCpydMAnUQUtyhvFscuOmymXsPSWvGPkoZGptnmCgi";
+    const decartApiKey = {{ decart_api_key | tojson }};
 
     const startScreen = document.getElementById("startScreen");
     const app = document.getElementById("app");
@@ -298,7 +302,7 @@
     const statusEl = document.getElementById("status");
     const loadingOverlay = document.getElementById("loadingOverlay");
 
-    const model = models.realtime("lucy-2.1");
+    const model = models.realtime("lucy-vton-latest");
 
     let stream = null;
     let realtimeClient = null;
@@ -308,6 +312,25 @@
     function setStatus(msg) {
       console.log(msg);
       statusEl.textContent = msg;
+    }
+
+    function getSafeErrorMessage(error) {
+      let message = String(error?.message || "Error desconocido de Decart");
+
+      if (decartApiKey) {
+        message = message.split(decartApiKey).join("[redacted]");
+      }
+
+      return message
+        .replace(/\b(?:dct|sk|ek)_[A-Za-z0-9_-]+\b/gi, "[redacted]")
+        .replace(
+          /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
+          "[redacted]"
+        )
+        .replace(
+          /([?&](?:token|api_key|key)=)[^&\s]+/gi,
+          "$1[redacted]"
+        );
     }
 
     function showLoading(text = "Cargando...") {
@@ -334,23 +357,25 @@
 
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 320 },
-          height: { ideal: 240 },
+          width: { ideal: 320, max: 320 },
+          height: { ideal: 240, max: 240 },
           frameRate: { ideal: 10, max: 12 }
         },
         audio: false,
       });
 
+        const [track] = stream.getVideoTracks();
+        if (track) {
+          console.log("[Outfit AR] Camera settings:", track.getSettings());
+        }
 
-
-
-
-
-        setStatus("Camara iniciada. Conectando con Lucy 2...");
-        showLoading("Conectando con Lucy 2...");
+        setStatus("Camara iniciada. Conectando con Lucy VTON...");
+        showLoading("Conectando con Lucy VTON...");
 
         const client = createDecartClient({
-          apiKey: DECART_API_KEY
+          apiKey: decartApiKey,
+          telemetry: false,
+          logger: noopLogger
         });
 
         realtimeClient = await client.realtime.connect(stream, {
@@ -363,12 +388,28 @@
           },
         });
 
+        realtimeClient.on("connectionChange", (state) => {
+          console.log("[Outfit AR] connectionChange:", state);
+        });
+
+        realtimeClient.on("error", (error) => {
+          console.error(
+            "[Outfit AR] Error Decart:",
+            error?.code || error?.name || "UNKNOWN_ERROR",
+            getSafeErrorMessage(error)
+          );
+        });
+
         startScreen.classList.add("hidden");
         app.classList.add("active");
 
       } catch (error) {
-        console.error(error);
-        setStatus("ERROR:\n" + (error?.message || error));
+        console.error(
+          "[Outfit AR] Error de inicio:",
+          error?.code || error?.name || "UNKNOWN_ERROR",
+          getSafeErrorMessage(error)
+        );
+        setStatus("ERROR:\n" + getSafeErrorMessage(error));
         hideLoading();
         startBtn.disabled = false;
       } finally {
@@ -387,7 +428,11 @@
           try {
             realtimeClient.disconnect();
           } catch (e) {
-            console.error("Error al desconectar realtimeClient:", e);
+            console.error(
+              "[Outfit AR] Error al desconectar:",
+              e?.code || e?.name || "UNKNOWN_ERROR",
+              getSafeErrorMessage(e)
+            );
           }
           realtimeClient = null;
         }
@@ -426,8 +471,12 @@
         goBackToMirror();
 
       } catch (error) {
-        console.error(error);
-        setStatus("ERROR al cerrar:\n" + (error?.message || error));
+        console.error(
+          "[Outfit AR] Error al cerrar:",
+          error?.code || error?.name || "UNKNOWN_ERROR",
+          getSafeErrorMessage(error)
+        );
+        setStatus("ERROR al cerrar:\n" + getSafeErrorMessage(error));
         hideLoading();
       } finally {
         isClosing = false;
@@ -469,8 +518,12 @@
         hideLoading();
 
       } catch (error) {
-        console.error(error);
-        setStatus("ERROR al seleccionar imagen:\n" + (error?.message || error));
+        console.error(
+          "[Outfit AR] Error al seleccionar imagen:",
+          error?.code || error?.name || "UNKNOWN_ERROR",
+          getSafeErrorMessage(error)
+        );
+        setStatus("ERROR al seleccionar imagen:\n" + getSafeErrorMessage(error));
         hideLoading();
       }
     };
@@ -493,7 +546,11 @@
           outputVideo.srcObject.getTracks().forEach(track => track.stop());
         }
       } catch (e) {
-        console.error(e);
+        console.error(
+          "[Outfit AR] Error durante limpieza:",
+          e?.code || e?.name || "UNKNOWN_ERROR",
+          getSafeErrorMessage(e)
+        );
       }
     });
   </script>
