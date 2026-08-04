@@ -26,26 +26,6 @@ The project demonstrates how software, electronics, APIs, IoT, and human–machi
 
 ---
 
-## Demo
-
-> Add a short GIF or video here to make the repository immediately understandable to recruiters.
-
-```html
-<p align="center">
-  <img src="docs/dianuby-mirror-demo.gif" width="800" alt="Dianuby Mirror AI demo">
-</p>
-```
-
-Suggested demo sequence:
-
-1. User approaches the mirror.
-2. Presence sensor activates the interface.
-3. Hand gesture changes between INFO, HOME AUTOMATION, and AI modes.
-4. User controls a connected device through Home Assistant.
-5. User holds the talk button, asks a question, and receives a spoken response.
-
----
-
 ## Key Features
 
 ### Presence-aware interface
@@ -302,7 +282,7 @@ pip install pyaudio
 Update the Home Assistant URL in `app.py`:
 
 ```python
-HOME_ASSISTANT_URL = "http://127.0.0.1:8123"
+HOME_ASSISTANT_URL = ""
 ```
 
 Use the correct local address if Home Assistant runs on another host.
@@ -361,15 +341,6 @@ This project is more than a graphical dashboard. It includes several engineering
 - Electrical isolation between 12 V sensors and 3.3 V GPIO inputs.
 - Integration of embedded hardware with web and IoT technologies.
 
----
-
-## Current Limitations
-
-- Hardware-specific GPIO code requires a Raspberry Pi or a simulated interface.
-- The public response module is deterministic and intended for a stable demonstration; a production LLM integration should add authentication, timeout handling, cost controls, and conversational memory.
-- Home Assistant authentication and network configuration depend on the local installation.
-- API location coordinates are currently configured in source code.
-- Automated tests and continuous integration are not yet included.
 
 ---
 
